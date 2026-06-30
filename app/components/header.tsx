@@ -1,5 +1,7 @@
 "use client"
+import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { signOut } from "next-auth/react"
 
 const PentagonIcon = () => (
   <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
@@ -38,20 +40,27 @@ export default function Header({ email }: { email?: string }) {
           <div className="pg-user-info">
             <span>{email}</span>
             <div className="pg-avatar">{inicial}</div>
+            <button
+              onClick={() => signOut({ callbackUrl: "/login" })}
+              style={{ background: "none", border: "none", cursor: "pointer", color: "#6b6655", fontSize: 16, display: "flex", alignItems: "center" }}
+              title="Sair"
+            >
+              <i className="ti ti-logout" aria-hidden="true"></i>
+            </button>
           </div>
         )}
       </header>
 
       <nav className="pg-nav">
         {links.map(l => (
-          <a
+          <Link
             key={l.href}
             href={l.href}
             className={pathname === l.href ? "active" : ""}
           >
             <i className={`ti ${l.icon}`} aria-hidden="true"></i>
             {l.label}
-          </a>
+          </Link>
         ))}
       </nav>
     </>
