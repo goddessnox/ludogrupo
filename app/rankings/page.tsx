@@ -97,15 +97,15 @@ export default function RankingsPage() {
         <h1 className="text-xl font-bold">⛤ Pentagono da Maldade ⛤</h1>
       </header>
 
-      <nav className="bg-gray-800 border-b border-gray-700 px-6 py-3 flex gap-6">
-        <a href="/" className="text-gray-400 hover:text-white transition">Dashboard</a>
-        <a href="/colecao" className="text-gray-400 hover:text-white transition">Colecao</a>
-        <a href="/desejos" className="text-gray-400 hover:text-white transition">Desejos</a>
-        <a href="/partidas" className="text-gray-400 hover:text-white transition">Partidas</a>
-        <a href="/rankings" className="text-white font-semibold border-b-2 border-indigo-500 pb-1">Rankings</a>
-        <a href="/leiloes" className="text-gray-400 hover:text-white transition">Leiloes</a>
-        <a href="/perfil" className="text-gray-400 hover:text-white transition">Perfil</a>
-      </nav>
+        <nav className="bg-gray-800 border-b border-gray-700 px-6 py-3 flex gap-6">
+      <a href="/" className="text-white font-semibold border-b-2 border-indigo-500 pb-1">Dashboard</a>
+      <a href="/colecao" className="text-gray-400 hover:text-white transition">Colecao</a>
+      <a href="/desejos" className="text-gray-400 hover:text-white transition">Desejos</a>
+      <a href="/partidas" className="text-gray-400 hover:text-white transition">Partidas</a>
+      <a href="/rankings" className="text-white font-semibold border-b-2 border-indigo-500 pb-1">Rankings</a>
+      <a href="/leiloes" className="text-gray-400 hover:text-white transition">Leiloes</a>
+      <a href="/perfil" className="text-gray-400 hover:text-white transition">Perfil</a>
+    </nav>
 
       <main className="max-w-4xl mx-auto px-6 py-10 space-y-10">
 
