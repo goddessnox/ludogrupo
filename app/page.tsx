@@ -1,65 +1,69 @@
-import Image from "next/image";
+import { getServerSession } from "next-auth"
+import { redirect } from "next/navigation"
 
-export default function Home() {
+export default async function Home() {
+  const session = await getServerSession()
+
+  if (!session) {
+    redirect("/login")
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+    <div className="min-h-screen bg-gray-900 text-white">
+      {/* Header */}
+      <header className="bg-gray-800 border-b border-gray-700 px-6 py-4 flex items-center justify-between">
+        <h1 className="text-xl font-bold">⛤ Pentagono da Maldade ⛤</h1>
+        <span className="text-gray-400 text-sm">{session.user?.email}</span>
+      </header>
+
+      {/* Menu */}
+      <nav className="bg-gray-800 border-b border-gray-700 px-6 py-3 flex gap-6">
+        <a href="/" className="text-white font-semibold border-b-2 border-indigo-500 pb-1">Dashboard</a>
+        <a href="/colecao" className="text-gray-400 hover:text-white transition">Coleção</a>
+        <a href="/partidas" className="text-gray-400 hover:text-white transition">Partidas</a>
+        <a href="/rankings" className="text-gray-400 hover:text-white transition">Rankings</a>
+        <a href="/leiloes" className="text-gray-400 hover:text-white transition">Leilões</a>
+      </nav>
+
+      {/* Conteúdo */}
+      <main className="max-w-6xl mx-auto px-6 py-10 grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        {/* Card: Coleção */}
+        <a href="/colecao" className="bg-gray-800 rounded-2xl p-6 hover:bg-gray-750 transition border border-gray-700 hover:border-indigo-500">
+          <div className="text-4xl mb-4">🎮</div>
+          <h2 className="text-lg font-bold mb-1">Coleção do Grupo</h2>
+          <p className="text-gray-400 text-sm">Veja todos os jogos que o grupo tem e filtre por dono.</p>
+        </a>
+
+        {/* Card: Partidas */}
+        <a href="/partidas" className="bg-gray-800 rounded-2xl p-6 hover:bg-gray-750 transition border border-gray-700 hover:border-indigo-500">
+          <div className="text-4xl mb-4">🏆</div>
+          <h2 className="text-lg font-bold mb-1">Registrar Partida</h2>
+          <p className="text-gray-400 text-sm">Registre quem jogou, quem ganhou e quanto tempo durou.</p>
+        </a>
+
+        {/* Card: Rankings */}
+        <a href="/rankings" className="bg-gray-800 rounded-2xl p-6 hover:bg-gray-750 transition border border-gray-700 hover:border-indigo-500">
+          <div className="text-4xl mb-4">📊</div>
+          <h2 className="text-lg font-bold mb-1">Rankings</h2>
+          <p className="text-gray-400 text-sm">Veja quem ganha mais, quem joga mais e os jogos favoritos.</p>
+        </a>
+
+        {/* Card: Leilões */}
+        <a href="/leiloes" className="bg-gray-800 rounded-2xl p-6 hover:bg-gray-750 transition border border-gray-700 hover:border-indigo-500">
+          <div className="text-4xl mb-4">🔨</div>
+          <h2 className="text-lg font-bold mb-1">Leilões Ativos</h2>
+          <p className="text-gray-400 text-sm">Acompanhe leilões em andamento e evite disputar com o grupo.</p>
+        </a>
+
+        {/* Card: O que jogar hoje */}
+        <a href="/jogar" className="bg-indigo-600 rounded-2xl p-6 hover:bg-indigo-700 transition border border-indigo-500 md:col-span-2">
+          <div className="text-4xl mb-4">🎯</div>
+          <h2 className="text-lg font-bold mb-1">O que jogar hoje?</h2>
+          <p className="text-indigo-200 text-sm">Selecione quem vai jogar e descubra os melhores jogos disponíveis pro grupo.</p>
+        </a>
+
       </main>
     </div>
-  );
+  )
 }

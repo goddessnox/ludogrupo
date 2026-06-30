@@ -1,12 +1,17 @@
-import NextAuth from "next-auth"
+import NextAuth, { NextAuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
 
 const emails_permitidos = [
-  "gstvomourapd@gmail.com",        // Gus
-  "roksagain@gmail.com",     // troca pelos emails reais
+  "gstvomourapd@gmail.com",
+  "roksagain@gmail.com",
+  "amigo3@email.com",
+  "amigo4@email.com",
+  "amigo5@email.com",
+  "amigo6@email.com",
+  "amigo7@email.com",
 ]
 
-const handler = NextAuth({
+export const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -18,6 +23,7 @@ const handler = NextAuth({
       return emails_permitidos.includes(user.email ?? "")
     },
   },
-})
+}
 
+const handler = NextAuth(authOptions)
 export { handler as GET, handler as POST }
