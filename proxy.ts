@@ -8,13 +8,16 @@ export async function proxy(request: NextRequest) {
   const isLoginPage = path === "/login"
   const isSetupPage = path === "/setup"
   const isApi = path.startsWith("/api")
+  const isStatic = path.startsWith("/_next") || path === "/favicon.ico"
 
-  if (isApi) return NextResponse.next()
+  if (isApi || isStatic) return NextResponse.next()
+
   if (!token && !isLoginPage && !isSetupPage) {
     return NextResponse.redirect(new URL("/login", request.url))
   }
+
   if (token && isLoginPage) {
-    return NextResponse.redirect(new URL("/", request.url))
+    return NextResponse.redirect(new URL("/setup", request.url))
   }
 
   return NextResponse.next()

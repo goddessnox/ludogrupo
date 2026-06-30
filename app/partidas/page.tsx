@@ -3,35 +3,40 @@ import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import Header from "../components/header"
 
+type Partida = {
+  id: string
+  jogo_nome: string
+  jogo_imagem: string
+  data: string
+  duracao_minutos: number | null
+  vencedor_email: string | null
+  jogadores: string[]
+}
+
 type Usuario = {
   email: string
   nome: string
 }
 
-type RankingItem = {
-  nome: string
-  email: string
-  vitorias: number
-  partidas: number
-  taxaVitoria: number
-}
-
-type JogoRanking = {
-  jogo_nome: string
-  jogo_imagem: string
-  partidas: number
-  vencedor: string | null
-}
-
-export default function RankingsPage() {
-  const [userEmail, setUserEmail] = useState("")
+export default function PartidasPage() {
+  const [partidas, setPartidas] = useState<Partida[]>([])
   const [usuarios, setUsuarios] = useState<Usuario[]>([])
-  const [ranking, setRanking] = useState<RankingItem[]>([])
-  const [jogosFrequentes, setJogosFrequentes] = useState<JogoRanking[]>([])
+  const [userEmail, setUserEmail] = useState("")
+  const [salvando, setSalvando] = useState(false)
+  const [buscaJogo, setBuscaJogo] = useState("")
+  const [resultados, setResultados] = useState<any[]>([])
+  const [jogoSelecionado, setJogoSelecionado] = useState<any>(null)
+  const [form, setForm] = useState({
+    data: "",
+    duracao_minutos: "",
+    vencedor_email: "",
+    jogadores: [] as string[],
+  })
 
   useEffect(() => {
     buscarEmail()
-    carregarDados()
+    buscarUsuarios()
+    buscarPartidas()
   }, [])
 
   async function buscarEmail() {
@@ -40,50 +45,54 @@ export default function RankingsPage() {
     setUserEmail(data?.user?.email ?? "")
   }
 
-  async function carregarDados() {
-    const { data: users } = await supabase.from("usuarios").select("email, nome")
-    const { data: parts } = await supabase.from("partidas").select("*")
-    setUsuarios(users ?? [])
-    calcularRanking(users ?? [], parts ?? [])
-    calcularJogos(users ?? [], parts ?? [])
+  async function buscarUsuarios() {
+    const { data } = await supabase.from("usuarios").select("email, nome")
+    setUsuarios(data ?? [])
   }
 
-  function calcularRanking(users: Usuario[], parts: any[]) {
-    const stats = users.map(u => {
-      const minhasPartidas = parts.filter(p => p.jogadores?.includes(u.email))
-      const minhasVitorias = parts.filter(p => p.vencedor_email === u.email)
-      return {
-        nome: u.nome,
-        email: u.email,
-        vitorias: minhasVitorias.length,
-        partidas: minhasPartidas.length,
-        taxaVitoria: minhasPartidas.length > 0 ? Math.round((minhasVitorias.length / minhasPartidas.length) * 100) : 0,
-      }
-    })
-    setRanking(stats.sort((a, b) => b.vitorias - a.vitorias))
+  async function buscarPartidas() {
+    const { data } = await supabase.from("partidas").select("*").order("data", { ascending: false })
+    setPartidas(data ?? [])
   }
 
-  function calcularJogos(users: Usuario[], parts: any[]) {
-    const mapa: Record<string, any> = {}
-    parts.forEach(p => {
-      if (!mapa[p.jogo_nome]) {
-        mapa[p.jogo_nome] = { jogo_nome: p.jogo_nome, jogo_imagem: p.jogo_imagem, partidas: 0, vitorias: {} as Record<string, number> }
-      }
-      mapa[p.jogo_nome].partidas++
-      if (p.vencedor_email) {
-        mapa[p.jogo_nome].vitorias[p.vencedor_email] = (mapa[p.jogo_nome].vitorias[p.vencedor_email] ?? 0) + 1
-      }
-    })
-    const lista = Object.values(mapa).map((j: any) => {
-      const vencedorEmail = Object.entries(j.vitorias).sort((a: any, b: any) => b[1] - a[1])[0]?.[0]
-      const vencedorNome = users.find(u => u.email === vencedorEmail)?.nome ?? null
-      return { jogo_nome: j.jogo_nome, jogo_imagem: j.jogo_imagem, partidas: j.partidas, vencedor: vencedorNome }
-    })
-    setJogosFrequentes(lista.sort((a, b) => b.partidas - a.partidas))
+  async function buscarJogo(nome: string) {
+    if (nome.length < 2) { setResultados([]); return }
+    const res = await fetch(`/api/ludopedia/buscar?q=${encodeURIComponent(nome)}`)
+    const data = await res.json()
+    setResultados(data.jogos ?? [])
   }
 
-  const medalhas = ["ti-medal", "ti-medal", "ti-medal"]
-  const medalhasCores = ["#c9a227", "#9e9e9e", "#a0522d"]
+  async function salvarPartida() {
+    if (!jogoSelecionado || !form.data || form.jogadores.length === 0) return
+    setSalvando(true)
+    await supabase.from("partidas").insert({
+      jogo_id: String(jogoSelecionado.id_jogo),
+      jogo_nome: jogoSelecionado.nm_jogo,
+      jogo_imagem: jogoSelecionado.img_jogo,
+      data: form.data,
+      duracao_minutos: form.duracao_minutos ? parseInt(form.duracao_minutos) : null,
+      vencedor_email: form.vencedor_email || null,
+      jogadores: form.jogadores,
+    })
+    setJogoSelecionado(null)
+    setBuscaJogo("")
+    setForm({ data: "", duracao_minutos: "", vencedor_email: "", jogadores: [] })
+    await buscarPartidas()
+    setSalvando(false)
+  }
+
+  function toggleJogador(email: string) {
+    setForm(prev => ({
+      ...prev,
+      jogadores: prev.jogadores.includes(email)
+        ? prev.jogadores.filter(e => e !== email)
+        : [...prev.jogadores, email]
+    }))
+  }
+
+  function nomeDoEmail(email: string) {
+    return usuarios.find(u => u.email === email)?.nome ?? email
+  }
 
   return (
     <div style={{ minHeight: "100vh" }}>
@@ -94,63 +103,115 @@ export default function RankingsPage() {
         <div className="pg-card" style={{ marginBottom: 24 }}>
           <div className="pg-card-accent"></div>
           <div className="pg-section-title">
-            <i className="ti ti-trophy" aria-hidden="true"></i> Ranking Geral
+            <i className="ti ti-sword" aria-hidden="true"></i> Registrar Partida
           </div>
 
-          {ranking.length === 0 && (
-            <p style={{ color: "#6b6655", fontSize: 13, fontFamily: "'Cinzel', serif" }}>Nenhuma partida registrada ainda.</p>
-          )}
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={{ position: "relative" }}>
+              <input
+                className="pg-input"
+                placeholder="Buscar jogo..."
+                value={buscaJogo}
+                onChange={e => { setBuscaJogo(e.target.value); buscarJogo(e.target.value) }}
+              />
+              {resultados.length > 0 && (
+                <div style={{ position: "absolute", zIndex: 10, width: "100%", background: "#111410", border: "1px solid #2a1f1f", borderRadius: 10, marginTop: 4, maxHeight: 200, overflowY: "auto" }}>
+                  {resultados.map((j: any) => (
+                    <div
+                      key={j.id_jogo}
+                      style={{ padding: "10px 14px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, borderBottom: "1px solid #1e1a0f" }}
+                      onClick={() => { setJogoSelecionado(j); setBuscaJogo(j.nm_jogo); setResultados([]) }}
+                    >
+                      {j.img_jogo && <img src={j.img_jogo} style={{ width: 32, height: 32, objectFit: "cover", borderRadius: 6 }} />}
+                      <span style={{ fontSize: 12, color: "#e8e3d0", fontFamily: "'Cinzel', serif" }}>{j.nm_jogo}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {ranking.map((r, i) => (
-              <div key={r.email} style={{ display: "flex", alignItems: "center", gap: 16, background: "#0d0f0c", border: "1px solid #1e1a0f", borderRadius: 10, padding: "14px 16px" }}>
-                <div style={{ width: 32, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  {i < 3
-                    ? <i className={`ti ${medalhas[i]}`} style={{ fontSize: 20, color: medalhasCores[i] }} aria-hidden="true"></i>
-                    : <span style={{ fontFamily: "'Cinzel Decorative', serif", fontSize: 14, color: "#6b6655" }}>{i + 1}</span>
-                  }
-                </div>
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontFamily: "'Cinzel', serif", fontSize: 13, fontWeight: 600, color: "#e8e3d0", marginBottom: 2 }}>{r.nome}</p>
-                  <p style={{ fontSize: 11, color: "#6b6655" }}>{r.partidas} partidas jogadas</p>
-                </div>
-                <div style={{ textAlign: "right" }}>
-                  <p style={{ fontFamily: "'Cinzel Decorative', serif", fontSize: 20, color: "#8b1a1a", lineHeight: 1 }}>{r.vitorias}</p>
-                  <p style={{ fontSize: 10, color: "#6b6655", fontFamily: "'Cinzel', serif", letterSpacing: "0.04em" }}>{r.taxaVitoria}% aproveitamento</p>
-                </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div>
+                <p style={{ fontSize: 11, color: "#6b6655", fontFamily: "'Cinzel', serif", marginBottom: 6, letterSpacing: "0.04em" }}>Data</p>
+                <input type="date" className="pg-input" value={form.data} onChange={e => setForm({ ...form, data: e.target.value })} />
               </div>
-            ))}
+              <div>
+                <p style={{ fontSize: 11, color: "#6b6655", fontFamily: "'Cinzel', serif", marginBottom: 6, letterSpacing: "0.04em" }}>Duracao (minutos)</p>
+                <input type="number" className="pg-input" placeholder="ex: 90" value={form.duracao_minutos} onChange={e => setForm({ ...form, duracao_minutos: e.target.value })} />
+              </div>
+            </div>
+
+            <div>
+              <p style={{ fontSize: 11, color: "#6b6655", fontFamily: "'Cinzel', serif", marginBottom: 10, letterSpacing: "0.04em" }}>Quem jogou</p>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {usuarios.map(u => (
+                  <button
+                    key={u.email}
+                    onClick={() => toggleJogador(u.email)}
+                    className={form.jogadores.includes(u.email) ? "pg-btn" : "pg-btn-ghost"}
+                    style={{ fontSize: 11, padding: "8px 16px" }}
+                  >
+                    {u.nome}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p style={{ fontSize: 11, color: "#6b6655", fontFamily: "'Cinzel', serif", marginBottom: 6, letterSpacing: "0.04em" }}>Vencedor</p>
+              <select className="pg-input" value={form.vencedor_email} onChange={e => setForm({ ...form, vencedor_email: e.target.value })}>
+                <option value="">Sem vencedor / Cooperativo</option>
+                {form.jogadores.map(email => (
+                  <option key={email} value={email}>{nomeDoEmail(email)}</option>
+                ))}
+              </select>
+            </div>
+
+            <button className="pg-btn" onClick={salvarPartida} disabled={salvando}>
+              {salvando ? "Salvando..." : "Registrar Partida"}
+            </button>
           </div>
         </div>
 
         <div className="pg-section-title">
-          <i className="ti ti-books" aria-hidden="true"></i> Jogos mais jogados
+          <i className="ti ti-history" aria-hidden="true"></i> Ultimas Partidas
         </div>
 
-        {jogosFrequentes.length === 0 && (
+        {partidas.length === 0 && (
           <p style={{ color: "#6b6655", fontSize: 13, fontFamily: "'Cinzel', serif" }}>Nenhuma partida registrada ainda.</p>
         )}
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {jogosFrequentes.map(j => (
-            <div key={j.jogo_nome} className="pg-card">
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {partidas.map(p => (
+            <div key={p.id} className="pg-card">
               <div className="pg-card-accent"></div>
-              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                {j.jogo_imagem && (
-                  <img src={j.jogo_imagem} style={{ width: 48, height: 48, objectFit: "cover", borderRadius: 8, border: "1px solid #2a1f1f", flexShrink: 0 }} />
+              <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
+                {p.jogo_imagem && (
+                  <img src={p.jogo_imagem} style={{ width: 56, height: 56, objectFit: "cover", borderRadius: 8, flexShrink: 0, border: "1px solid #2a1f1f" }} />
                 )}
                 <div style={{ flex: 1 }}>
-                  <p style={{ fontFamily: "'Cinzel', serif", fontSize: 13, fontWeight: 600, color: "#e8e3d0", marginBottom: 2 }}>{j.jogo_nome}</p>
-                  <p style={{ fontSize: 11, color: "#6b6655" }}>{j.partidas} {j.partidas === 1 ? "partida" : "partidas"}</p>
-                </div>
-                {j.vencedor && (
-                  <div style={{ textAlign: "right" }}>
-                    <p style={{ fontSize: 10, color: "#6b6655", fontFamily: "'Cinzel', serif", marginBottom: 2 }}>Quem mais ganha</p>
-                    <p style={{ fontFamily: "'Cinzel', serif", fontSize: 12, color: "#c9a227", fontWeight: 600 }}>
-                      <i className="ti ti-crown" style={{ marginRight: 4 }} aria-hidden="true"></i>{j.vencedor}
-                    </p>
+                  <p style={{ fontFamily: "'Cinzel', serif", fontSize: 14, fontWeight: 600, color: "#e8e3d0", marginBottom: 4 }}>{p.jogo_nome}</p>
+                  <p style={{ fontSize: 11, color: "#6b6655", marginBottom: 8 }}>{new Date(p.data).toLocaleDateString("pt-BR")}{p.duracao_minutos ? ` — ${p.duracao_minutos} min` : ""}</p>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {(p.jogadores ?? []).map(email => (
+                      <span
+                        key={email}
+                        style={{
+                          fontSize: 11,
+                          padding: "3px 10px",
+                          borderRadius: 20,
+                          fontFamily: "'Cinzel', serif",
+                          background: email === p.vencedor_email ? "#3d1010" : "#111410",
+                          border: `1px solid ${email === p.vencedor_email ? "#8b1a1a" : "#1e1a0f"}`,
+                          color: email === p.vencedor_email ? "#e8e3d0" : "#6b6655",
+                        }}
+                      >
+                        {email === p.vencedor_email && <i className="ti ti-crown" style={{ marginRight: 4 }} aria-hidden="true"></i>}
+                        {nomeDoEmail(email)}
+                      </span>
+                    ))}
                   </div>
-                )}
+                </div>
               </div>
             </div>
           ))}
