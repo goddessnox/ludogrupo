@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth"
 import { redirect } from "next/navigation"
 import { authOptions } from "./api/auth/[...nextauth]/route"
+import Header from "./components/header"
 
 export default async function Home() {
   const session = await getServerSession(authOptions)
@@ -10,60 +11,67 @@ export default async function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <header className="bg-gray-800 border-b border-gray-700 px-6 py-4 flex items-center justify-between">
-        <h1 className="text-xl font-bold">⛤ Pentagono da Maldade ⛤</h1>
-        <span className="text-gray-400 text-sm">{session.user?.email}</span>
-      </header>
+    <div style={{ minHeight: "100vh" }}>
+      <Header email={session.user?.email ?? ""} />
 
-      <nav className="bg-gray-800 border-b border-gray-700 px-6 py-3 flex gap-6">
-        <a href="/" className="text-white font-semibold border-b-2 border-indigo-500 pb-1">Dashboard</a>
-        <a href="/colecao" className="text-gray-400 hover:text-white transition">Colecao</a>
-        <a href="/desejos" className="text-gray-400 hover:text-white transition">Desejos</a>
-        <a href="/partidas" className="text-gray-400 hover:text-white transition">Partidas</a>
-        <a href="/rankings" className="text-gray-400 hover:text-white transition">Rankings</a>
-        <a href="/leiloes" className="text-gray-400 hover:text-white transition">Leiloes</a>
-        <a href="/perfil" className="text-gray-400 hover:text-white transition">Perfil</a>
-      </nav>
+      <main style={{ maxWidth: 1100, margin: "0 auto", padding: "28px 24px" }}>
+        <div style={{ marginBottom: 24 }}>
+          <h2 style={{ fontFamily: "'Cinzel', serif", fontSize: 20, fontWeight: 600, color: "#e8e3d0", marginBottom: 4, letterSpacing: "0.02em" }}>
+            Bem-vindo, {session.user?.name?.split(" ")[0] ?? "aventureiro"}.
+          </h2>
+          <p style={{ fontSize: 12, color: "#6b6655", fontFamily: "'Cinzel', serif", letterSpacing: "0.04em" }}>
+            {new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+          </p>
+        </div>
 
-      <main className="max-w-6xl mx-auto px-6 py-10 grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
 
-        <a href="/colecao" className="bg-gray-800 rounded-2xl p-6 transition border border-gray-700 hover:border-indigo-500">
-          <div className="text-4xl mb-4">🎮</div>
-          <h2 className="text-lg font-bold mb-1">Colecao do Grupo</h2>
-          <p className="text-gray-400 text-sm">Veja todos os jogos que o grupo tem e filtre por dono.</p>
-        </a>
+          <a href="/leiloes" className="pg-card featured" style={{ textDecoration: "none", gridColumn: "span 2" }}>
+            <div className="pg-card-accent"></div>
+            <div className="pg-badge" style={{ marginBottom: 10 }}>
+              <div className="pg-badge-dot"></div> Leiloes ativos
+            </div>
+            <div className="pg-card-icon"><i className="ti ti-gavel" aria-hidden="true"></i></div>
+            <div className="pg-card-title">Leiloes Ativos</div>
+            <div className="pg-card-desc">Acompanhe e evite disputar com o grupo.</div>
+          </a>
 
-        <a href="/desejos" className="bg-gray-800 rounded-2xl p-6 transition border border-gray-700 hover:border-pink-500">
-          <div className="text-4xl mb-4">🎁</div>
-          <h2 className="text-lg font-bold mb-1">Lista de Desejos</h2>
-          <p className="text-gray-400 text-sm">Veja o que cada um quer comprar.</p>
-        </a>
+          <a href="/colecao" className="pg-card" style={{ textDecoration: "none" }}>
+            <div className="pg-card-accent"></div>
+            <div className="pg-card-icon"><i className="ti ti-books" aria-hidden="true"></i></div>
+            <div className="pg-card-title">Colecao</div>
+            <div className="pg-card-desc">Todos os jogos do grupo com filtros por dono.</div>
+          </a>
 
-        <a href="/partidas" className="bg-gray-800 rounded-2xl p-6 transition border border-gray-700 hover:border-indigo-500">
-          <div className="text-4xl mb-4">🏆</div>
-          <h2 className="text-lg font-bold mb-1">Registrar Partida</h2>
-          <p className="text-gray-400 text-sm">Registre quem jogou, quem ganhou e quanto tempo durou.</p>
-        </a>
+          <a href="/desejos" className="pg-card" style={{ textDecoration: "none" }}>
+            <div className="pg-card-accent"></div>
+            <div className="pg-card-icon"><i className="ti ti-heart" aria-hidden="true"></i></div>
+            <div className="pg-card-title">Desejos</div>
+            <div className="pg-card-desc">Lista de desejos de cada membro do grupo.</div>
+          </a>
 
-        <a href="/rankings" className="bg-gray-800 rounded-2xl p-6 transition border border-gray-700 hover:border-indigo-500">
-          <div className="text-4xl mb-4">📊</div>
-          <h2 className="text-lg font-bold mb-1">Rankings</h2>
-          <p className="text-gray-400 text-sm">Veja quem ganha mais, quem joga mais e os jogos favoritos.</p>
-        </a>
+          <a href="/partidas" className="pg-card" style={{ textDecoration: "none" }}>
+            <div className="pg-card-accent"></div>
+            <div className="pg-card-icon"><i className="ti ti-sword" aria-hidden="true"></i></div>
+            <div className="pg-card-title">Partidas</div>
+            <div className="pg-card-desc">Registre quem jogou e quem ganhou.</div>
+          </a>
 
-        <a href="/leiloes" className="bg-gray-800 rounded-2xl p-6 transition border border-gray-700 hover:border-indigo-500">
-          <div className="text-4xl mb-4">🔨</div>
-          <h2 className="text-lg font-bold mb-1">Leiloes Ativos</h2>
-          <p className="text-gray-400 text-sm">Acompanhe leiloes em andamento e evite disputar com o grupo.</p>
-        </a>
+          <a href="/rankings" className="pg-card" style={{ textDecoration: "none" }}>
+            <div className="pg-card-accent"></div>
+            <div className="pg-card-icon"><i className="ti ti-trophy" aria-hidden="true"></i></div>
+            <div className="pg-card-title">Rankings</div>
+            <div className="pg-card-desc">Quem ganha mais e os jogos favoritos.</div>
+          </a>
 
-        <a href="/jogar" className="bg-indigo-600 rounded-2xl p-6 hover:bg-indigo-700 transition border border-indigo-500">
-          <div className="text-4xl mb-4">🎯</div>
-          <h2 className="text-lg font-bold mb-1">O que jogar hoje?</h2>
-          <p className="text-indigo-200 text-sm">Selecione quem vai jogar e descubra os melhores jogos disponiveis pro grupo.</p>
-        </a>
+          <a href="/jogar" className="pg-card" style={{ textDecoration: "none" }}>
+            <div className="pg-card-accent"></div>
+            <div className="pg-card-icon"><i className="ti ti-dice" aria-hidden="true"></i></div>
+            <div className="pg-card-title">O que jogar hoje?</div>
+            <div className="pg-card-desc">Selecione quem vai jogar e descubra o melhor jogo.</div>
+          </a>
 
+        </div>
       </main>
     </div>
   )

@@ -1,41 +1,37 @@
 "use client"
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
-
-type Partida = {
-  id: string
-  jogo_nome: string
-  jogo_imagem: string
-  data: string
-  duracao_minutos: number | null
-  vencedor_email: string | null
-  jogadores: string[]
-}
+import Header from "../components/header"
 
 type Usuario = {
   email: string
   nome: string
 }
 
-export default function PartidasPage() {
-  const [partidas, setPartidas] = useState<Partida[]>([])
-  const [usuarios, setUsuarios] = useState<Usuario[]>([])
+type RankingItem = {
+  nome: string
+  email: string
+  vitorias: number
+  partidas: number
+  taxaVitoria: number
+}
+
+type JogoRanking = {
+  jogo_nome: string
+  jogo_imagem: string
+  partidas: number
+  vencedor: string | null
+}
+
+export default function RankingsPage() {
   const [userEmail, setUserEmail] = useState("")
-  const [salvando, setSalvando] = useState(false)
-  const [buscaJogo, setBuscaJogo] = useState("")
-  const [resultados, setResultados] = useState<any[]>([])
-  const [jogoSelecionado, setJogoSelecionado] = useState<any>(null)
-  const [form, setForm] = useState({
-    data: "",
-    duracao_minutos: "",
-    vencedor_email: "",
-    jogadores: [] as string[],
-  })
+  const [usuarios, setUsuarios] = useState<Usuario[]>([])
+  const [ranking, setRanking] = useState<RankingItem[]>([])
+  const [jogosFrequentes, setJogosFrequentes] = useState<JogoRanking[]>([])
 
   useEffect(() => {
     buscarEmail()
-    buscarUsuarios()
-    buscarPartidas()
+    carregarDados()
   }, [])
 
   async function buscarEmail() {
@@ -44,195 +40,116 @@ export default function PartidasPage() {
     setUserEmail(data?.user?.email ?? "")
   }
 
-  async function buscarUsuarios() {
-    const { data } = await supabase.from("usuarios").select("email, nome")
-    setUsuarios(data ?? [])
+  async function carregarDados() {
+    const { data: users } = await supabase.from("usuarios").select("email, nome")
+    const { data: parts } = await supabase.from("partidas").select("*")
+    setUsuarios(users ?? [])
+    calcularRanking(users ?? [], parts ?? [])
+    calcularJogos(users ?? [], parts ?? [])
   }
 
-  async function buscarPartidas() {
-    const { data } = await supabase
-      .from("partidas")
-      .select("*")
-      .order("data", { ascending: false })
-    setPartidas(data ?? [])
-  }
-
-  async function buscarJogo(nome: string) {
-    if (nome.length < 2) { setResultados([]); return }
-    const res = await fetch(`/api/ludopedia/buscar?q=${encodeURIComponent(nome)}`)
-    const data = await res.json()
-    setResultados(data.jogos ?? [])
-  }
-
-  async function salvarPartida() {
-    if (!jogoSelecionado || !form.data || form.jogadores.length === 0) return
-    setSalvando(true)
-    await supabase.from("partidas").insert({
-      jogo_id: String(jogoSelecionado.id_jogo),
-      jogo_nome: jogoSelecionado.nm_jogo,
-      jogo_imagem: jogoSelecionado.img_jogo,
-      data: form.data,
-      duracao_minutos: form.duracao_minutos ? parseInt(form.duracao_minutos) : null,
-      vencedor_email: form.vencedor_email || null,
-      jogadores: form.jogadores,
+  function calcularRanking(users: Usuario[], parts: any[]) {
+    const stats = users.map(u => {
+      const minhasPartidas = parts.filter(p => p.jogadores?.includes(u.email))
+      const minhasVitorias = parts.filter(p => p.vencedor_email === u.email)
+      return {
+        nome: u.nome,
+        email: u.email,
+        vitorias: minhasVitorias.length,
+        partidas: minhasPartidas.length,
+        taxaVitoria: minhasPartidas.length > 0 ? Math.round((minhasVitorias.length / minhasPartidas.length) * 100) : 0,
+      }
     })
-    setJogoSelecionado(null)
-    setBuscaJogo("")
-    setForm({ data: "", duracao_minutos: "", vencedor_email: "", jogadores: [] })
-    await buscarPartidas()
-    setSalvando(false)
+    setRanking(stats.sort((a, b) => b.vitorias - a.vitorias))
   }
 
-  function toggleJogador(email: string) {
-    setForm(prev => ({
-      ...prev,
-      jogadores: prev.jogadores.includes(email)
-        ? prev.jogadores.filter(e => e !== email)
-        : [...prev.jogadores, email]
-    }))
+  function calcularJogos(users: Usuario[], parts: any[]) {
+    const mapa: Record<string, any> = {}
+    parts.forEach(p => {
+      if (!mapa[p.jogo_nome]) {
+        mapa[p.jogo_nome] = { jogo_nome: p.jogo_nome, jogo_imagem: p.jogo_imagem, partidas: 0, vitorias: {} as Record<string, number> }
+      }
+      mapa[p.jogo_nome].partidas++
+      if (p.vencedor_email) {
+        mapa[p.jogo_nome].vitorias[p.vencedor_email] = (mapa[p.jogo_nome].vitorias[p.vencedor_email] ?? 0) + 1
+      }
+    })
+    const lista = Object.values(mapa).map((j: any) => {
+      const vencedorEmail = Object.entries(j.vitorias).sort((a: any, b: any) => b[1] - a[1])[0]?.[0]
+      const vencedorNome = users.find(u => u.email === vencedorEmail)?.nome ?? null
+      return { jogo_nome: j.jogo_nome, jogo_imagem: j.jogo_imagem, partidas: j.partidas, vencedor: vencedorNome }
+    })
+    setJogosFrequentes(lista.sort((a, b) => b.partidas - a.partidas))
   }
 
-  function nomeDoEmail(email: string) {
-    return usuarios.find(u => u.email === email)?.nome ?? email
-  }
+  const medalhas = ["ti-medal", "ti-medal", "ti-medal"]
+  const medalhasCores = ["#c9a227", "#9e9e9e", "#a0522d"]
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <header className="bg-gray-800 border-b border-gray-700 px-6 py-4 flex items-center justify-between">
-        <h1 className="text-xl font-bold">⛤ Pentagono da Maldade ⛤</h1>
-        <span className="text-gray-400 text-sm">{userEmail}</span>
-      </header>
+    <div style={{ minHeight: "100vh" }}>
+      <Header email={userEmail} />
 
-      <nav className="bg-gray-800 border-b border-gray-700 px-6 py-3 flex gap-6">
-        <a href="/" className="text-gray-400 hover:text-white transition">Dashboard</a>
-        <a href="/colecao" className="text-gray-400 hover:text-white transition">Colecao</a>
-        <a href="/desejos" className="text-gray-400 hover:text-white transition">Desejos</a>
-        <a href="/partidas" className="text-white font-semibold border-b-2 border-indigo-500 pb-1">Partidas</a>
-        <a href="/rankings" className="text-gray-400 hover:text-white transition">Rankings</a>
-        <a href="/leiloes" className="text-gray-400 hover:text-white transition">Leiloes</a>
-        <a href="/perfil" className="text-gray-400 hover:text-white transition">Perfil</a>
-      </nav>
+      <main style={{ maxWidth: 900, margin: "0 auto", padding: "28px 24px" }}>
 
-      <main className="max-w-4xl mx-auto px-6 py-10 space-y-10">
+        <div className="pg-card" style={{ marginBottom: 24 }}>
+          <div className="pg-card-accent"></div>
+          <div className="pg-section-title">
+            <i className="ti ti-trophy" aria-hidden="true"></i> Ranking Geral
+          </div>
 
-        <div className="bg-gray-800 rounded-2xl p-6 border border-gray-700">
-          <h2 className="text-lg font-bold mb-4">Registrar Partida</h2>
-          <div className="space-y-4">
-            <div className="relative">
-              <input
-                className="bg-gray-700 rounded-xl px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 w-full"
-                placeholder="Buscar jogo..."
-                value={buscaJogo}
-                onChange={e => { setBuscaJogo(e.target.value); buscarJogo(e.target.value) }}
-              />
-              {resultados.length > 0 && (
-                <div className="absolute z-10 w-full bg-gray-700 rounded-xl mt-1 max-h-48 overflow-y-auto">
-                  {resultados.map((j: any) => (
-                    <div
-                      key={j.id_jogo}
-                      className="px-4 py-2 hover:bg-gray-600 cursor-pointer flex items-center gap-3"
-                      onClick={() => { setJogoSelecionado(j); setBuscaJogo(j.nm_jogo); setResultados([]) }}
-                    >
-                      {j.img_jogo && <img src={j.img_jogo} className="w-8 h-8 object-cover rounded" />}
-                      <span className="text-sm">{j.nm_jogo}</span>
-                    </div>
-                  ))}
+          {ranking.length === 0 && (
+            <p style={{ color: "#6b6655", fontSize: 13, fontFamily: "'Cinzel', serif" }}>Nenhuma partida registrada ainda.</p>
+          )}
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {ranking.map((r, i) => (
+              <div key={r.email} style={{ display: "flex", alignItems: "center", gap: 16, background: "#0d0f0c", border: "1px solid #1e1a0f", borderRadius: 10, padding: "14px 16px" }}>
+                <div style={{ width: 32, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  {i < 3
+                    ? <i className={`ti ${medalhas[i]}`} style={{ fontSize: 20, color: medalhasCores[i] }} aria-hidden="true"></i>
+                    : <span style={{ fontFamily: "'Cinzel Decorative', serif", fontSize: 14, color: "#6b6655" }}>{i + 1}</span>
+                  }
                 </div>
-              )}
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm text-gray-400 mb-1 block">Data</label>
-                <input
-                  type="date"
-                  className="bg-gray-700 rounded-xl px-4 py-2 text-white w-full focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  value={form.data}
-                  onChange={e => setForm({ ...form, data: e.target.value })}
-                />
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontFamily: "'Cinzel', serif", fontSize: 13, fontWeight: 600, color: "#e8e3d0", marginBottom: 2 }}>{r.nome}</p>
+                  <p style={{ fontSize: 11, color: "#6b6655" }}>{r.partidas} partidas jogadas</p>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <p style={{ fontFamily: "'Cinzel Decorative', serif", fontSize: 20, color: "#8b1a1a", lineHeight: 1 }}>{r.vitorias}</p>
+                  <p style={{ fontSize: 10, color: "#6b6655", fontFamily: "'Cinzel', serif", letterSpacing: "0.04em" }}>{r.taxaVitoria}% aproveitamento</p>
+                </div>
               </div>
-              <div>
-                <label className="text-sm text-gray-400 mb-1 block">Duracao (minutos)</label>
-                <input
-                  type="number"
-                  className="bg-gray-700 rounded-xl px-4 py-2 text-white w-full focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  placeholder="ex: 90"
-                  value={form.duracao_minutos}
-                  onChange={e => setForm({ ...form, duracao_minutos: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="text-sm text-gray-400 mb-2 block">Quem jogou</label>
-              <div className="flex flex-wrap gap-2">
-                {usuarios.map(u => (
-                  <button
-                    key={u.email}
-                    onClick={() => toggleJogador(u.email)}
-                    className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${
-                      form.jogadores.includes(u.email)
-                        ? "bg-indigo-600 text-white"
-                        : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                    }`}
-                  >
-                    {u.nome}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label className="text-sm text-gray-400 mb-1 block">Vencedor</label>
-              <select
-                className="bg-gray-700 rounded-xl px-4 py-2 text-white w-full focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                value={form.vencedor_email}
-                onChange={e => setForm({ ...form, vencedor_email: e.target.value })}
-              >
-                <option value="">Sem vencedor / Cooperativo</option>
-                {form.jogadores.map(email => (
-                  <option key={email} value={email}>{nomeDoEmail(email)}</option>
-                ))}
-              </select>
-            </div>
-
-            <button
-              onClick={salvarPartida}
-              disabled={salvando}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-2 rounded-xl transition disabled:opacity-50"
-            >
-              {salvando ? "Salvando..." : "Registrar"}
-            </button>
+            ))}
           </div>
         </div>
 
-        <div className="space-y-4">
-          <h2 className="text-lg font-bold">Ultimas Partidas</h2>
-          {partidas.length === 0 && <p className="text-gray-400">Nenhuma partida registrada ainda.</p>}
-          {partidas.map(p => (
-            <div key={p.id} className="bg-gray-800 rounded-2xl p-5 border border-gray-700 flex gap-4 items-start">
-              {p.jogo_imagem && (
-                <img src={p.jogo_imagem} className="w-16 h-16 object-cover rounded-xl flex-shrink-0" />
-              )}
-              <div className="flex-1">
-                <p className="font-bold text-lg">{p.jogo_nome}</p>
-                <p className="text-gray-400 text-sm">{new Date(p.data).toLocaleDateString("pt-BR")}</p>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {(p.jogadores ?? []).map(email => (
-                    <span
-                      key={email}
-                      className={`text-xs px-2 py-0.5 rounded-full ${
-                        email === p.vencedor_email
-                          ? "bg-yellow-600 text-yellow-100"
-                          : "bg-gray-700 text-gray-300"
-                      }`}
-                    >
-                      {email === p.vencedor_email ? "🏆 " : ""}{nomeDoEmail(email)}
-                    </span>
-                  ))}
+        <div className="pg-section-title">
+          <i className="ti ti-books" aria-hidden="true"></i> Jogos mais jogados
+        </div>
+
+        {jogosFrequentes.length === 0 && (
+          <p style={{ color: "#6b6655", fontSize: 13, fontFamily: "'Cinzel', serif" }}>Nenhuma partida registrada ainda.</p>
+        )}
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {jogosFrequentes.map(j => (
+            <div key={j.jogo_nome} className="pg-card">
+              <div className="pg-card-accent"></div>
+              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                {j.jogo_imagem && (
+                  <img src={j.jogo_imagem} style={{ width: 48, height: 48, objectFit: "cover", borderRadius: 8, border: "1px solid #2a1f1f", flexShrink: 0 }} />
+                )}
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontFamily: "'Cinzel', serif", fontSize: 13, fontWeight: 600, color: "#e8e3d0", marginBottom: 2 }}>{j.jogo_nome}</p>
+                  <p style={{ fontSize: 11, color: "#6b6655" }}>{j.partidas} {j.partidas === 1 ? "partida" : "partidas"}</p>
                 </div>
-                {p.duracao_minutos && (
-                  <p className="text-gray-500 text-xs mt-1">{p.duracao_minutos} minutos</p>
+                {j.vencedor && (
+                  <div style={{ textAlign: "right" }}>
+                    <p style={{ fontSize: 10, color: "#6b6655", fontFamily: "'Cinzel', serif", marginBottom: 2 }}>Quem mais ganha</p>
+                    <p style={{ fontFamily: "'Cinzel', serif", fontSize: 12, color: "#c9a227", fontWeight: 600 }}>
+                      <i className="ti ti-crown" style={{ marginRight: 4 }} aria-hidden="true"></i>{j.vencedor}
+                    </p>
+                  </div>
                 )}
               </div>
             </div>

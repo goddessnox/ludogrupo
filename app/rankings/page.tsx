@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
+import Header from "../components/header"
 
 type Usuario = {
   email: string
@@ -23,24 +24,26 @@ type JogoRanking = {
 }
 
 export default function RankingsPage() {
-  const [usuarios, setUsuarios] = useState<Usuario[]>([])
-  const [partidas, setPartidas] = useState<any[]>([])
+  const [userEmail, setUserEmail] = useState("")
   const [ranking, setRanking] = useState<RankingItem[]>([])
   const [jogosFrequentes, setJogosFrequentes] = useState<JogoRanking[]>([])
 
   useEffect(() => {
+    buscarEmail()
     carregarDados()
   }, [])
+
+  async function buscarEmail() {
+    const res = await fetch("/api/auth/session")
+    const data = await res.json()
+    setUserEmail(data?.user?.email ?? "")
+  }
 
   async function carregarDados() {
     const { data: users } = await supabase.from("usuarios").select("email, nome")
     const { data: parts } = await supabase.from("partidas").select("*")
-
-    setUsuarios(users ?? [])
-    setPartidas(parts ?? [])
-
     calcularRanking(users ?? [], parts ?? [])
-    calcularJogos(parts ?? [])
+    calcularJogos(users ?? [], parts ?? [])
   }
 
   function calcularRanking(users: Usuario[], parts: any[]) {
@@ -52,109 +55,103 @@ export default function RankingsPage() {
         email: u.email,
         vitorias: minhasVitorias.length,
         partidas: minhasPartidas.length,
-        taxaVitoria: minhasPartidas.length > 0
-          ? Math.round((minhasVitorias.length / minhasPartidas.length) * 100)
-          : 0,
+        taxaVitoria: minhasPartidas.length > 0 ? Math.round((minhasVitorias.length / minhasPartidas.length) * 100) : 0,
       }
     })
     setRanking(stats.sort((a, b) => b.vitorias - a.vitorias))
   }
 
-  function calcularJogos(parts: any[]) {
+  function calcularJogos(users: Usuario[], parts: any[]) {
     const mapa: Record<string, any> = {}
     parts.forEach(p => {
       if (!mapa[p.jogo_nome]) {
-        mapa[p.jogo_nome] = {
-          jogo_nome: p.jogo_nome,
-          jogo_imagem: p.jogo_imagem,
-          partidas: 0,
-          vitorias: {} as Record<string, number>,
-        }
+        mapa[p.jogo_nome] = { jogo_nome: p.jogo_nome, jogo_imagem: p.jogo_imagem, partidas: 0, vitorias: {} as Record<string, number> }
       }
       mapa[p.jogo_nome].partidas++
       if (p.vencedor_email) {
         mapa[p.jogo_nome].vitorias[p.vencedor_email] = (mapa[p.jogo_nome].vitorias[p.vencedor_email] ?? 0) + 1
       }
     })
-
     const lista = Object.values(mapa).map((j: any) => {
       const vencedorEmail = Object.entries(j.vitorias).sort((a: any, b: any) => b[1] - a[1])[0]?.[0]
-      const vencedorNome = usuarios.find(u => u.email === vencedorEmail)?.nome ?? null
-      return {
-        jogo_nome: j.jogo_nome,
-        jogo_imagem: j.jogo_imagem,
-        partidas: j.partidas,
-        vencedor: vencedorNome,
-      }
+      const vencedorNome = users.find(u => u.email === vencedorEmail)?.nome ?? null
+      return { jogo_nome: j.jogo_nome, jogo_imagem: j.jogo_imagem, partidas: j.partidas, vencedor: vencedorNome }
     })
-
     setJogosFrequentes(lista.sort((a, b) => b.partidas - a.partidas))
   }
 
+  const medalhasCores = ["#c9a227", "#9e9e9e", "#a0522d"]
+
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <header className="bg-gray-800 border-b border-gray-700 px-6 py-4 flex items-center justify-between">
-        <h1 className="text-xl font-bold">⛤ Pentagono da Maldade ⛤</h1>
-      </header>
+    <div style={{ minHeight: "100vh" }}>
+      <Header email={userEmail} />
 
-        <nav className="bg-gray-800 border-b border-gray-700 px-6 py-3 flex gap-6">
-      <a href="/" className="text-white font-semibold border-b-2 border-indigo-500 pb-1">Dashboard</a>
-      <a href="/colecao" className="text-gray-400 hover:text-white transition">Colecao</a>
-      <a href="/desejos" className="text-gray-400 hover:text-white transition">Desejos</a>
-      <a href="/partidas" className="text-gray-400 hover:text-white transition">Partidas</a>
-      <a href="/rankings" className="text-white font-semibold border-b-2 border-indigo-500 pb-1">Rankings</a>
-      <a href="/leiloes" className="text-gray-400 hover:text-white transition">Leiloes</a>
-      <a href="/perfil" className="text-gray-400 hover:text-white transition">Perfil</a>
-    </nav>
+      <main style={{ maxWidth: 900, margin: "0 auto", padding: "28px 24px" }}>
 
-      <main className="max-w-4xl mx-auto px-6 py-10 space-y-10">
+        <div className="pg-card" style={{ marginBottom: 24 }}>
+          <div className="pg-card-accent"></div>
+          <div className="pg-section-title">
+            <i className="ti ti-trophy" aria-hidden="true"></i> Ranking Geral
+          </div>
 
-        <div className="bg-gray-800 rounded-2xl p-6 border border-gray-700">
-          <h2 className="text-lg font-bold mb-4">🏆 Ranking Geral</h2>
-          <div className="space-y-3">
+          {ranking.length === 0 && (
+            <p style={{ color: "#6b6655", fontSize: 13, fontFamily: "'Cinzel', serif" }}>Nenhuma partida registrada ainda.</p>
+          )}
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {ranking.map((r, i) => (
-              <div key={r.email} className="flex items-center gap-4 bg-gray-700 rounded-xl p-4">
-                <span className="text-2xl font-bold text-gray-400 w-8">
-                  {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}`}
-                </span>
-                <div className="flex-1">
-                  <p className="font-semibold">{r.nome}</p>
-                  <p className="text-gray-400 text-sm">{r.partidas} partidas jogadas</p>
+              <div key={r.email} style={{ display: "flex", alignItems: "center", gap: 16, background: "#0d0f0c", border: "1px solid #1e1a0f", borderRadius: 10, padding: "14px 16px" }}>
+                <div style={{ width: 32, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  {i < 3
+                    ? <i className="ti ti-medal" style={{ fontSize: 20, color: medalhasCores[i] }} aria-hidden="true"></i>
+                    : <span style={{ fontFamily: "'Cinzel Decorative', serif", fontSize: 14, color: "#6b6655" }}>{i + 1}</span>
+                  }
                 </div>
-                <div className="text-right">
-                  <p className="font-bold text-indigo-400">{r.vitorias} vitorias</p>
-                  <p className="text-gray-400 text-sm">{r.taxaVitoria}% de aproveitamento</p>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontFamily: "'Cinzel', serif", fontSize: 13, fontWeight: 600, color: "#e8e3d0", marginBottom: 2 }}>{r.nome}</p>
+                  <p style={{ fontSize: 11, color: "#6b6655" }}>{r.partidas} partidas jogadas</p>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <p style={{ fontFamily: "'Cinzel Decorative', serif", fontSize: 20, color: "#8b1a1a", lineHeight: 1 }}>{r.vitorias}</p>
+                  <p style={{ fontSize: 10, color: "#6b6655", fontFamily: "'Cinzel', serif", letterSpacing: "0.04em" }}>{r.taxaVitoria}% aproveitamento</p>
                 </div>
               </div>
             ))}
-            {ranking.length === 0 && <p className="text-gray-400">Nenhuma partida registrada ainda.</p>}
           </div>
         </div>
 
-        <div className="bg-gray-800 rounded-2xl p-6 border border-gray-700">
-          <h2 className="text-lg font-bold mb-4">🎲 Jogos mais jogados</h2>
-          <div className="space-y-3">
-            {jogosFrequentes.map(j => (
-              <div key={j.jogo_nome} className="flex items-center gap-4 bg-gray-700 rounded-xl p-4">
+        <div className="pg-section-title">
+          <i className="ti ti-books" aria-hidden="true"></i> Jogos mais jogados
+        </div>
+
+        {jogosFrequentes.length === 0 && (
+          <p style={{ color: "#6b6655", fontSize: 13, fontFamily: "'Cinzel', serif" }}>Nenhuma partida registrada ainda.</p>
+        )}
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {jogosFrequentes.map(j => (
+            <div key={j.jogo_nome} className="pg-card">
+              <div className="pg-card-accent"></div>
+              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                 {j.jogo_imagem && (
-                  <img src={j.jogo_imagem} className="w-12 h-12 object-cover rounded-lg flex-shrink-0" />
+                  <img src={j.jogo_imagem} style={{ width: 48, height: 48, objectFit: "cover", borderRadius: 8, border: "1px solid #2a1f1f", flexShrink: 0 }} />
                 )}
-                <div className="flex-1">
-                  <p className="font-semibold">{j.jogo_nome}</p>
-                  <p className="text-gray-400 text-sm">{j.partidas} {j.partidas === 1 ? "partida" : "partidas"}</p>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontFamily: "'Cinzel', serif", fontSize: 13, fontWeight: 600, color: "#e8e3d0", marginBottom: 2 }}>{j.jogo_nome}</p>
+                  <p style={{ fontSize: 11, color: "#6b6655" }}>{j.partidas} {j.partidas === 1 ? "partida" : "partidas"}</p>
                 </div>
                 {j.vencedor && (
-                  <div className="text-right">
-                    <p className="text-xs text-gray-400">Quem mais ganha</p>
-                    <p className="text-yellow-400 font-semibold text-sm">{j.vencedor}</p>
+                  <div style={{ textAlign: "right" }}>
+                    <p style={{ fontSize: 10, color: "#6b6655", fontFamily: "'Cinzel', serif", marginBottom: 2 }}>Quem mais ganha</p>
+                    <p style={{ fontFamily: "'Cinzel', serif", fontSize: 12, color: "#c9a227", fontWeight: 600 }}>
+                      <i className="ti ti-crown" style={{ marginRight: 4 }} aria-hidden="true"></i>{j.vencedor}
+                    </p>
                   </div>
                 )}
               </div>
-            ))}
-            {jogosFrequentes.length === 0 && <p className="text-gray-400">Nenhuma partida registrada ainda.</p>}
-          </div>
+            </div>
+          ))}
         </div>
-
       </main>
     </div>
   )

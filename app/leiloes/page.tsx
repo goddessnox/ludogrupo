@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
+import Header from "../components/header"
 
 type Leilao = {
   id: string
@@ -19,10 +20,7 @@ function Countdown({ encerra_em }: { encerra_em: string }) {
   useEffect(() => {
     const calcular = () => {
       const diff = new Date(encerra_em).getTime() - Date.now()
-      if (diff <= 0) {
-        setTempo("Encerrado")
-        return
-      }
+      if (diff <= 0) { setTempo("Encerrado"); return }
       const h = Math.floor(diff / 3600000)
       const m = Math.floor((diff % 3600000) / 60000)
       const s = Math.floor((diff % 60000) / 1000)
@@ -35,7 +33,7 @@ function Countdown({ encerra_em }: { encerra_em: string }) {
   }, [encerra_em])
 
   return (
-    <span className={urgente ? "text-red-400 font-bold" : "text-green-400"}>
+    <span style={{ color: urgente ? "#c94444" : "#4a7c59", fontFamily: "'Cinzel', serif", fontSize: 12, fontWeight: 600 }}>
       {tempo}
     </span>
   )
@@ -50,37 +48,31 @@ function DateTimePicker({ value, onChange }: { value: string, onChange: (v: stri
 
   useEffect(() => {
     if (dia && mes && ano && hora && minuto) {
-      const iso = `${ano}-${mes.padStart(2,"0")}-${dia.padStart(2,"0")}T${hora.padStart(2,"0")}:${minuto.padStart(2,"0")}`
+      const iso = `${ano}-${mes.padStart(2, "0")}-${dia.padStart(2, "0")}T${hora.padStart(2, "0")}:${minuto.padStart(2, "0")}`
       onChange(iso)
     }
   }, [dia, mes, ano, hora, minuto])
 
-  const inputClass = "bg-gray-700 rounded-xl px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 w-full"
-
   return (
-    <div className="grid grid-cols-5 gap-2">
-      <input className={inputClass} placeholder="Dia" maxLength={2} value={dia} onChange={e => setDia(e.target.value)} />
-      <input className={inputClass} placeholder="Mes" maxLength={2} value={mes} onChange={e => setMes(e.target.value)} />
-      <input className={inputClass} placeholder="Ano" maxLength={4} value={ano} onChange={e => setAno(e.target.value)} />
-      <input className={inputClass} placeholder="Hora" maxLength={2} value={hora} onChange={e => setHora(e.target.value)} />
-      <input className={inputClass} placeholder="Min" maxLength={2} value={minuto} onChange={e => setMinuto(e.target.value)} />
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 8 }}>
+      <input className="pg-input" placeholder="Dia" maxLength={2} value={dia} onChange={e => setDia(e.target.value)} />
+      <input className="pg-input" placeholder="Mes" maxLength={2} value={mes} onChange={e => setMes(e.target.value)} />
+      <input className="pg-input" placeholder="Ano" maxLength={4} value={ano} onChange={e => setAno(e.target.value)} />
+      <input className="pg-input" placeholder="Hora" maxLength={2} value={hora} onChange={e => setHora(e.target.value)} />
+      <input className="pg-input" placeholder="Min" maxLength={2} value={minuto} onChange={e => setMinuto(e.target.value)} />
     </div>
   )
 }
 
 export default function LeiloesPage() {
   const [leiloes, setLeiloes] = useState<Leilao[]>([])
-  const [form, setForm] = useState({
-    jogo_nome: "",
-    link_leilao: "",
-    encerra_em: "",
-  })
   const [userEmail, setUserEmail] = useState("")
   const [salvando, setSalvando] = useState(false)
+  const [form, setForm] = useState({ jogo_nome: "", link_leilao: "", encerra_em: "" })
 
   useEffect(() => {
-    buscarLeiloes()
     buscarEmail()
+    buscarLeiloes()
   }, [])
 
   async function buscarEmail() {
@@ -90,11 +82,7 @@ export default function LeiloesPage() {
   }
 
   async function buscarLeiloes() {
-    const { data } = await supabase
-      .from("leiloes")
-      .select("*")
-      .eq("status", "ativo")
-      .order("encerra_em", { ascending: true })
+    const { data } = await supabase.from("leiloes").select("*").eq("status", "ativo").order("encerra_em", { ascending: true })
     setLeiloes(data ?? [])
   }
 
@@ -118,108 +106,72 @@ export default function LeiloesPage() {
     await buscarLeiloes()
   }
 
-  const jogosComConflito = leiloes
-    .map(l => l.jogo_nome.toLowerCase())
-    .filter((nome, i, arr) => arr.indexOf(nome) !== i)
+  const jogosComConflito = leiloes.map(l => l.jogo_nome.toLowerCase()).filter((nome, i, arr) => arr.indexOf(nome) !== i)
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <header className="bg-gray-800 border-b border-gray-700 px-6 py-4 flex items-center justify-between">
-        <h1 className="text-xl font-bold">⛤ Pentagono da Maldade ⛤</h1>
-        <span className="text-gray-400 text-sm">{userEmail}</span>
-      </header>
+    <div style={{ minHeight: "100vh" }}>
+      <Header email={userEmail} />
 
-      <nav className="bg-gray-800 border-b border-gray-700 px-6 py-3 flex gap-6">
-        <a href="/" className="text-gray-400 hover:text-white transition">Dashboard</a>
-        <a href="/colecao" className="text-gray-400 hover:text-white transition">Colecao</a>
-        <a href="/partidas" className="text-gray-400 hover:text-white transition">Partidas</a>
-        <a href="/rankings" className="text-gray-400 hover:text-white transition">Rankings</a>
-        <a href="/leiloes" className="text-white font-semibold border-b-2 border-indigo-500 pb-1">Leiloes</a>
-      </nav>
+      <main style={{ maxWidth: 900, margin: "0 auto", padding: "28px 24px" }}>
 
-      <main className="max-w-4xl mx-auto px-6 py-10 space-y-10">
-
-        <div className="bg-gray-800 rounded-2xl p-6 border border-gray-700">
-          <h2 className="text-lg font-bold mb-4">🔨 Adicionar Leilao</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <input
-              className="bg-gray-700 rounded-xl px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="Nome do jogo"
-              value={form.jogo_nome}
-              onChange={e => setForm({ ...form, jogo_nome: e.target.value })}
-            />
-            <input
-              className="bg-gray-700 rounded-xl px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="Link do leilao"
-              value={form.link_leilao}
-              onChange={e => setForm({ ...form, link_leilao: e.target.value })}
-            />
+        <div className="pg-card" style={{ marginBottom: 24 }}>
+          <div className="pg-card-accent"></div>
+          <div className="pg-section-title">
+            <i className="ti ti-gavel" aria-hidden="true"></i> Adicionar Leilao
           </div>
-          <p className="text-gray-400 text-sm mb-2">Data e hora de encerramento (Dia / Mes / Ano / Hora / Min)</p>
-          <DateTimePicker
-            value={form.encerra_em}
-            onChange={v => setForm({ ...form, encerra_em: v })}
-          />
-          <button
-            onClick={salvarLeilao}
-            disabled={salvando}
-            className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-2 rounded-xl transition disabled:opacity-50"
-          >
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+            <input className="pg-input" placeholder="Nome do jogo" value={form.jogo_nome} onChange={e => setForm({ ...form, jogo_nome: e.target.value })} />
+            <input className="pg-input" placeholder="Link do leilao" value={form.link_leilao} onChange={e => setForm({ ...form, link_leilao: e.target.value })} />
+          </div>
+          <p style={{ fontSize: 11, color: "#6b6655", marginBottom: 8, fontFamily: "'Cinzel', serif", letterSpacing: "0.04em" }}>
+            Data e hora de encerramento — Dia / Mes / Ano / Hora / Min
+          </p>
+          <DateTimePicker value={form.encerra_em} onChange={v => setForm({ ...form, encerra_em: v })} />
+          <button className="pg-btn" style={{ marginTop: 16 }} onClick={salvarLeilao} disabled={salvando}>
             {salvando ? "Salvando..." : "Adicionar"}
           </button>
         </div>
 
-        <div className="space-y-4">
-          <h2 className="text-lg font-bold">Leiloes Ativos</h2>
+        <div className="pg-section-title">
+          <i className="ti ti-list" aria-hidden="true"></i> Leiloes Ativos
+        </div>
 
-          {leiloes.length === 0 && (
-            <p className="text-gray-400">Nenhum leilao ativo no momento.</p>
-          )}
+        {leiloes.length === 0 && (
+          <p style={{ color: "#6b6655", fontSize: 13, fontFamily: "'Cinzel', serif" }}>Nenhum leilao ativo no momento.</p>
+        )}
 
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {leiloes.map(leilao => {
             const conflito = jogosComConflito.includes(leilao.jogo_nome.toLowerCase())
             const meu = leilao.usuario_email === userEmail
-
             return (
-              <div
-                key={leilao.id}
-                className={`bg-gray-800 rounded-2xl p-5 border ${conflito ? "border-yellow-500" : "border-gray-700"}`}
-              >
+              <div key={leilao.id} className="pg-card" style={{ borderColor: conflito ? "#6b2020" : undefined }}>
+                <div className="pg-card-accent"></div>
                 {conflito && (
-                  <div className="text-yellow-400 text-sm font-semibold mb-2">
-                    Atencao: mais de uma pessoa do grupo esta neste leilao!
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#c94444", fontSize: 11, fontFamily: "'Cinzel', serif", marginBottom: 10, letterSpacing: "0.04em" }}>
+                    <i className="ti ti-alert-triangle" aria-hidden="true"></i>
+                    Mais de uma pessoa do grupo esta neste leilao
                   </div>
                 )}
-                <div className="flex items-center justify-between flex-wrap gap-4">
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
                   <div>
-                    <p className="font-bold text-lg">{leilao.jogo_nome}</p>
-                    <p className="text-gray-400 text-sm">{leilao.usuario_email}</p>
+                    <p style={{ fontFamily: "'Cinzel', serif", fontSize: 14, fontWeight: 600, color: "#e8e3d0", marginBottom: 4 }}>{leilao.jogo_nome}</p>
+                    <p style={{ fontSize: 11, color: "#6b6655" }}>{leilao.usuario_email}</p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm text-gray-400">Encerra em</p>
+                  <div style={{ textAlign: "right" }}>
+                    <p style={{ fontSize: 10, color: "#6b6655", fontFamily: "'Cinzel', serif", marginBottom: 4 }}>Encerra em</p>
                     <Countdown encerra_em={leilao.encerra_em} />
                   </div>
-                  <a
-                    href={leilao.link_leilao}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="bg-gray-700 hover:bg-gray-600 text-white text-sm px-4 py-2 rounded-xl transition"
-                  >
-                    Ver leilao
+                  <a href={leilao.link_leilao} target="_blank" rel="noopener noreferrer" className="pg-btn-ghost" style={{ textDecoration: "none", fontSize: 11 }}>
+                    Ver leilao <i className="ti ti-external-link" aria-hidden="true"></i>
                   </a>
                   {meu && (
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => encerrarLeilao(leilao.id, "ganhou")}
-                        className="bg-green-700 hover:bg-green-600 text-white text-sm px-3 py-2 rounded-xl transition"
-                      >
-                        Ganhei
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button onClick={() => encerrarLeilao(leilao.id, "ganhou")} className="pg-btn" style={{ fontSize: 11, padding: "8px 14px" }}>
+                        <i className="ti ti-check" aria-hidden="true"></i> Ganhei
                       </button>
-                      <button
-                        onClick={() => encerrarLeilao(leilao.id, "perdeu")}
-                        className="bg-red-800 hover:bg-red-700 text-white text-sm px-3 py-2 rounded-xl transition"
-                      >
-                        Perdi
+                      <button onClick={() => encerrarLeilao(leilao.id, "perdeu")} className="pg-btn-ghost" style={{ fontSize: 11, padding: "8px 14px" }}>
+                        <i className="ti ti-x" aria-hidden="true"></i> Perdi
                       </button>
                     </div>
                   )}

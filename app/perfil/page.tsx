@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
+import Header from "../components/header"
 
 export default function PerfilPage() {
   const [userEmail, setUserEmail] = useState("")
@@ -43,30 +44,32 @@ export default function PerfilPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <header className="bg-gray-800 border-b border-gray-700 px-6 py-4 flex items-center justify-between">
-        <h1 className="text-xl font-bold">⛤ Pentagono da Maldade ⛤</h1>
-        <span className="text-gray-400 text-sm">{userEmail}</span>
-      </header>
+    <div style={{ minHeight: "100vh" }}>
+      <Header email={userEmail} />
 
-      <nav className="bg-gray-800 border-b border-gray-700 px-6 py-3 flex gap-6">
-        <a href="/" className="text-gray-400 hover:text-white transition">Dashboard</a>
-        <a href="/colecao" className="text-gray-400 hover:text-white transition">Colecao</a>
-        <a href="/partidas" className="text-gray-400 hover:text-white transition">Partidas</a>
-        <a href="/rankings" className="text-gray-400 hover:text-white transition">Rankings</a>
-        <a href="/leiloes" className="text-gray-400 hover:text-white transition">Leiloes</a>
-        <a href="/perfil" className="text-white font-semibold border-b-2 border-indigo-500 pb-1">Perfil</a>
-      </nav>
+      <main style={{ maxWidth: 600, margin: "0 auto", padding: "28px 24px" }}>
 
-      <main className="max-w-2xl mx-auto px-6 py-10 space-y-6">
-        <div className="bg-gray-800 rounded-2xl p-6 border border-gray-700">
-          <h2 className="text-lg font-bold mb-6">Meu Perfil</h2>
+        <div className="pg-card">
+          <div className="pg-card-accent"></div>
+          <div className="pg-section-title">
+            <i className="ti ti-user" aria-hidden="true"></i> Meu Perfil
+          </div>
 
-          <div className="space-y-4">
+          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+
             <div>
-              <label className="text-sm text-gray-400 mb-1 block">Username na Ludopedia</label>
+              <p style={{ fontSize: 11, color: "#6b6655", fontFamily: "'Cinzel', serif", letterSpacing: "0.04em", marginBottom: 8 }}>
+                Email
+              </p>
+              <p style={{ fontSize: 13, color: "#e8e3d0", fontFamily: "'Cinzel', serif" }}>{userEmail}</p>
+            </div>
+
+            <div>
+              <p style={{ fontSize: 11, color: "#6b6655", fontFamily: "'Cinzel', serif", letterSpacing: "0.04em", marginBottom: 8 }}>
+                Username na Ludopedia
+              </p>
               <input
-                className="bg-gray-700 rounded-xl px-4 py-2 text-white w-full focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="pg-input"
                 placeholder="ex: GustavoMoura"
                 value={username}
                 onChange={e => setUsername(e.target.value)}
@@ -74,12 +77,15 @@ export default function PerfilPage() {
             </div>
 
             <div>
-              <label className="text-sm text-gray-400 mb-1 block">Cookie da Ludopedia</label>
-              <p className="text-xs text-gray-500 mb-2">
-                Entre na Ludopedia, abra o DevTools (F12), va em Network, recarregue a pagina, clique em qualquer requisicao e copie o valor completo do campo Cookie em Request Headers.
+              <p style={{ fontSize: 11, color: "#6b6655", fontFamily: "'Cinzel', serif", letterSpacing: "0.04em", marginBottom: 4 }}>
+                Cookie da Ludopedia
+              </p>
+              <p style={{ fontSize: 10, color: "#6b6655", marginBottom: 8, lineHeight: 1.5 }}>
+                Entre na Ludopedia, abra o DevTools (F12), va em Network, recarregue a pagina, clique em qualquer requisicao e copie o valor do campo Cookie em Request Headers.
               </p>
               <textarea
-                className="bg-gray-700 rounded-xl px-4 py-2 text-white w-full h-32 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs font-mono"
+                className="pg-input"
+                style={{ height: 100, fontFamily: "monospace", fontSize: 11, resize: "vertical" }}
                 placeholder="Cole o cookie aqui..."
                 value={cookies}
                 onChange={e => setCookies(e.target.value)}
@@ -87,9 +93,9 @@ export default function PerfilPage() {
             </div>
 
             <button
+              className="pg-btn"
               onClick={salvar}
               disabled={salvando}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-2 rounded-xl transition disabled:opacity-50"
             >
               {salvando ? "Salvando..." : salvo ? "Salvo!" : "Salvar"}
             </button>
