@@ -116,8 +116,7 @@ export default function PartidasPage() {
       <main className="max-w-4xl mx-auto px-6 py-10 space-y-10">
 
         <div className="bg-gray-800 rounded-2xl p-6 border border-gray-700">
-          <h2 className="text-lg font-bold mb-4">🏆 Registrar Partida</h2>
-
+          <h2 className="text-lg font-bold mb-4">Registrar Partida</h2>
           <div className="space-y-4">
             <div className="relative">
               <input
@@ -163,7 +162,81 @@ export default function PartidasPage() {
                 />
               </div>
             </div>
+
+            <div>
+              <label className="text-sm text-gray-400 mb-2 block">Quem jogou</label>
+              <div className="flex flex-wrap gap-2">
+                {usuarios.map(u => (
+                  <button
+                    key={u.email}
+                    onClick={() => toggleJogador(u.email)}
+                    className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${
+                      form.jogadores.includes(u.email)
+                        ? "bg-indigo-600 text-white"
+                        : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                    }`}
+                  >
+                    {u.nome}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm text-gray-400 mb-1 block">Vencedor</label>
+              <select
+                className="bg-gray-700 rounded-xl px-4 py-2 text-white w-full focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                value={form.vencedor_email}
+                onChange={e => setForm({ ...form, vencedor_email: e.target.value })}
+              >
+                <option value="">Sem vencedor / Cooperativo</option>
+                {form.jogadores.map(email => (
+                  <option key={email} value={email}>{nomeDoEmail(email)}</option>
+                ))}
+              </select>
+            </div>
+
+            <button
+              onClick={salvarPartida}
+              disabled={salvando}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-2 rounded-xl transition disabled:opacity-50"
+            >
+              {salvando ? "Salvando..." : "Registrar"}
+            </button>
           </div>
+        </div>
+
+        <div className="space-y-4">
+          <h2 className="text-lg font-bold">Ultimas Partidas</h2>
+          {partidas.length === 0 && <p className="text-gray-400">Nenhuma partida registrada ainda.</p>}
+          {partidas.map(p => (
+            <div key={p.id} className="bg-gray-800 rounded-2xl p-5 border border-gray-700 flex gap-4 items-start">
+              {p.jogo_imagem && (
+                <img src={p.jogo_imagem} className="w-16 h-16 object-cover rounded-xl flex-shrink-0" />
+              )}
+              <div className="flex-1">
+                <p className="font-bold text-lg">{p.jogo_nome}</p>
+                <p className="text-gray-400 text-sm">{new Date(p.data).toLocaleDateString("pt-BR")}</p>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {(p.jogadores ?? []).map(email => (
+                    <span
+                      key={email}
+                      className={`text-xs px-2 py-0.5 rounded-full ${
+                        email === p.vencedor_email
+                          ? "bg-yellow-600 text-yellow-100"
+                          : "bg-gray-700 text-gray-300"
+                      }`}
+                    >
+                      {email === p.vencedor_email ? "🏆 " : ""}{nomeDoEmail(email)}
+                    </span>
+                  ))}
+                </div>
+                {p.duracao_minutos && (
+                  <p className="text-gray-500 text-xs mt-1">{p.duracao_minutos} minutos</p>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       </main>
     </div>
