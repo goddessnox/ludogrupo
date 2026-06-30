@@ -1,16 +1,6 @@
 import NextAuth, { NextAuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
 
-const emails_permitidos = [
-  "gstvomourapd@gmail.com",
-  "roksagain@gmail.com",
-  "amigo3@email.com",
-  "amigo4@email.com",
-  "amigo5@email.com",
-  "amigo6@email.com",
-  "amigo7@email.com",
-]
-
 export const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
@@ -19,9 +9,12 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async signIn({ user }) {
-      return emails_permitidos.includes(user.email ?? "")
+    async signIn() {
+      return true
     },
+  },
+  pages: {
+    signIn: "/login",
   },
 }
 

@@ -4,9 +4,12 @@ import { getToken } from "next-auth/jwt"
 
 export async function proxy(request: NextRequest) {
   const token = await getToken({ req: request })
-  const isLoginPage = request.nextUrl.pathname === "/login"
+  const path = request.nextUrl.pathname
+  const isLoginPage = path === "/login"
+  const isSetupPage = path === "/setup"
+  const isApi = path.startsWith("/api")
 
-  if (!token && !isLoginPage) {
+  if (!token && !isLoginPage && !isSetupPage) {
     return NextResponse.redirect(new URL("/login", request.url))
   }
 
@@ -18,5 +21,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 }

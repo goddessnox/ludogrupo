@@ -35,7 +35,7 @@ export default async function Home() {
         </a>
 
         <a href="/desejos" className="bg-gray-800 rounded-2xl p-6 transition border border-gray-700 hover:border-pink-500">
-          <div className="text-4xl mb-4">wishlist</div>
+          <div className="text-4xl mb-4">🎁</div>
           <h2 className="text-lg font-bold mb-1">Lista de Desejos</h2>
           <p className="text-gray-400 text-sm">Veja o que cada um quer comprar.</p>
         </a>
