@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
   try {
     const { data: usuario } = await supabase
       .from("usuarios")
-      .select("ludo_cookies")
+      .select("ludo_cookies, ludo_id")
       .eq("username_ludopedia", username)
       .single()
 
@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
 
     do {
       const res = await fetch(
-        `https://ludopedia.com.br/api/v1/colecao?username=${username}&rows=48&page=${page}`,
+        `https://ludopedia.com.br/api/v1/colecao?username=${username}&lista=lista_desejos&rows=48&page=${page}`,
         { cache: "no-store", headers }
       )
       const data = await res.json()
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
       page++
     } while (todosJogos.length < total)
 
-    console.log("Total colecao:", total, "Carregados:", todosJogos.length)
+    console.log("Total desejos:", total, "Carregados:", todosJogos.length)
 
     const jogos = todosJogos.map((j: any) => ({
       id_jogo: j.id_jogo,
